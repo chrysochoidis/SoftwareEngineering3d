@@ -202,11 +202,7 @@ public class StackedBarActivity extends DemoBase implements OnSeekBarChangeListe
                 break;
             }
             case R.id.actionTogglePinch: {
-                if (chart.isPinchZoomEnabled())
-                    chart.setPinchZoom(false);
-                else
-                    chart.setPinchZoom(true);
-
+                chart.setPinchZoom(!chart.isPinchZoomEnabled());
                 chart.invalidate();
                 break;
             }
