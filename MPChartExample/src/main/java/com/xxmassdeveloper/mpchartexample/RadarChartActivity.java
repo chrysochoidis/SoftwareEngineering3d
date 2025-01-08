@@ -179,10 +179,7 @@ public class RadarChartActivity extends DemoBase {
                 break;
             }
             case R.id.actionToggleRotate: {
-                if (chart.isRotationEnabled())
-                    chart.setRotationEnabled(false);
-                else
-                    chart.setRotationEnabled(true);
+                chart.setRotationEnabled(!chart.isRotationEnabled());
                 chart.invalidate();
                 break;
             }
