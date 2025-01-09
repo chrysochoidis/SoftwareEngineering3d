@@ -58,27 +58,7 @@ public class BarBuffer extends AbstractBuffer<IBarDataSet> {
             float[] vals = e.getYVals();
 
             if (!mContainsStacks || vals == null) {
-
-                float left = x - barWidthHalf;
-                float right = x + barWidthHalf;
-                float bottom, top;
-
-                if (mInverted) {
-                    bottom = y >= 0 ? y : 0;
-                    top = y <= 0 ? y : 0;
-                } else {
-                    top = y >= 0 ? y : 0;
-                    bottom = y <= 0 ? y : 0;
-                }
-
-                // multiply the height of the rect with the phase
-                if (top > 0)
-                    top *= phaseY;
-                else
-                    bottom *= phaseY;
-
-                addBar(left, top, right, bottom);
-
+                calculateAndAddBar(x,barWidthHalf,y,0, true);
             } else {
 
                 float posY = 0f;
@@ -104,27 +84,39 @@ public class BarBuffer extends AbstractBuffer<IBarDataSet> {
                         negY += Math.abs(value);
                     }
 
-                    float left = x - barWidthHalf;
-                    float right = x + barWidthHalf;
-                    float bottom, top;
+                    calculateAndAddBar(x,barWidthHalf,y,yStart, false);
 
-                    if (mInverted) {
-                        bottom = y >= yStart ? y : yStart;
-                        top = y <= yStart ? y : yStart;
-                    } else {
-                        top = y >= yStart ? y : yStart;
-                        bottom = y <= yStart ? y : yStart;
-                    }
-
-                    // multiply the height of the rect with the phase
-                    top *= phaseY;
-                    bottom *= phaseY;
-
-                    addBar(left, top, right, bottom);
                 }
             }
         }
 
         reset();
+    }
+
+    protected void calculateAndAddBar(float x,float barWidthHalf, float y, float value, boolean condition){
+        float left = x - barWidthHalf;
+        float right = x + barWidthHalf;
+        float bottom;
+        float top;
+
+        if (mInverted) {
+            bottom = Math.max(y, value);
+            top = Math.min(y, value);
+        } else {
+            top = Math.max(y, value);
+            bottom = Math.min(y, value);
+        }
+
+        if (condition){
+            if (top > 0)
+                top *= phaseY;
+            else
+                bottom *= phaseY;
+        } else {
+            top *= phaseY;
+            bottom *= phaseY;
+        }
+
+        addBar(left, top, right, bottom);
     }
 }
