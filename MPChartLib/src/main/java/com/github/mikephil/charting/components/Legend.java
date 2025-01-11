@@ -649,178 +649,122 @@ public class Legend extends ComponentBase {
      *
      * @param labelpaint
      */
-    public void calculateDimensions(Paint labelpaint, ViewPortHandler viewPortHandler) {
+    public void calculateDimensions(Paint labelPaint, ViewPortHandler viewPortHandler) {
+        final float defaultFormSize = Utils.convertDpToPixel(mFormSize);
+        final float stackSpace = Utils.convertDpToPixel(mStackSpace);
+        final float formToTextSpace = Utils.convertDpToPixel(mFormToTextSpace);
+        final float xEntrySpace = Utils.convertDpToPixel(mXEntrySpace);
+        final float yEntrySpace = Utils.convertDpToPixel(mYEntrySpace);
 
-        float defaultFormSize = Utils.convertDpToPixel(mFormSize);
-        float stackSpace = Utils.convertDpToPixel(mStackSpace);
-        float formToTextSpace = Utils.convertDpToPixel(mFormToTextSpace);
-        float xEntrySpace = Utils.convertDpToPixel(mXEntrySpace);
-        float yEntrySpace = Utils.convertDpToPixel(mYEntrySpace);
-        boolean wordWrapEnabled = mWordWrapEnabled;
-        LegendEntry[] entries = mEntries;
-        int entryCount = entries.length;
+        mTextWidthMax = getMaximumEntryWidth(labelPaint);
+        mTextHeightMax = getMaximumEntryHeight(labelPaint);
 
-        mTextWidthMax = getMaximumEntryWidth(labelpaint);
-        mTextHeightMax = getMaximumEntryHeight(labelpaint);
-
-        switch (mOrientation) {
-            case VERTICAL: {
-
-                float maxWidth = 0f, maxHeight = 0f, width = 0f;
-                float labelLineHeight = Utils.getLineHeight(labelpaint);
-                boolean wasStacked = false;
-
-                for (int i = 0; i < entryCount; i++) {
-
-                    LegendEntry e = entries[i];
-                    boolean drawingForm = e.form != LegendForm.NONE;
-                    float formSize = Float.isNaN(e.formSize)
-                            ? defaultFormSize
-                            : Utils.convertDpToPixel(e.formSize);
-                    String label = e.label;
-
-                    if (!wasStacked)
-                        width = 0.f;
-
-                    if (drawingForm) {
-                        if (wasStacked)
-                            width += stackSpace;
-                        width += formSize;
-                    }
-
-                    // grouped forms have null labels
-                    if (label != null) {
-
-                        // make a step to the left
-                        if (drawingForm && !wasStacked)
-                            width += formToTextSpace;
-                        else if (wasStacked) {
-                            maxWidth = Math.max(maxWidth, width);
-                            maxHeight += labelLineHeight + yEntrySpace;
-                            width = 0.f;
-                            wasStacked = false;
-                        }
-
-                        width += Utils.calcTextWidth(labelpaint, label);
-
-                        if (i < entryCount - 1)
-                            maxHeight += labelLineHeight + yEntrySpace;
-                    } else {
-                        wasStacked = true;
-                        width += formSize;
-                        if (i < entryCount - 1)
-                            width += stackSpace;
-                    }
-
-                    maxWidth = Math.max(maxWidth, width);
-                }
-
-                mNeededWidth = maxWidth;
-                mNeededHeight = maxHeight;
-
-                break;
-            }
-            case HORIZONTAL: {
-
-                float labelLineHeight = Utils.getLineHeight(labelpaint);
-                float labelLineSpacing = Utils.getLineSpacing(labelpaint) + yEntrySpace;
-                float contentWidth = viewPortHandler.contentWidth() * mMaxSizePercent;
-
-                // Start calculating layout
-                float maxLineWidth = 0.f;
-                float currentLineWidth = 0.f;
-                float requiredWidth = 0.f;
-                int stackedStartIndex = -1;
-
-                mCalculatedLabelBreakPoints.clear();
-                mCalculatedLabelSizes.clear();
-                mCalculatedLineSizes.clear();
-
-                for (int i = 0; i < entryCount; i++) {
-
-                    LegendEntry e = entries[i];
-                    boolean drawingForm = e.form != LegendForm.NONE;
-                    float formSize = Float.isNaN(e.formSize)
-                            ? defaultFormSize
-                            : Utils.convertDpToPixel(e.formSize);
-                    String label = e.label;
-
-                    mCalculatedLabelBreakPoints.add(false);
-
-                    if (stackedStartIndex == -1) {
-                        // we are not stacking, so required width is for this label
-                        // only
-                        requiredWidth = 0.f;
-                    } else {
-                        // add the spacing appropriate for stacked labels/forms
-                        requiredWidth += stackSpace;
-                    }
-
-                    // grouped forms have null labels
-                    if (label != null) {
-
-                        mCalculatedLabelSizes.add(Utils.calcTextSize(labelpaint, label));
-                        requiredWidth += drawingForm ? formToTextSpace + formSize : 0.f;
-                        requiredWidth += mCalculatedLabelSizes.get(i).width;
-                    } else {
-
-                        mCalculatedLabelSizes.add(FSize.getInstance(0.f, 0.f));
-                        requiredWidth += drawingForm ? formSize : 0.f;
-
-                        if (stackedStartIndex == -1) {
-                            // mark this index as we might want to break here later
-                            stackedStartIndex = i;
-                        }
-                    }
-
-                    if (label != null || i == entryCount - 1) {
-
-                        float requiredSpacing = currentLineWidth == 0.f ? 0.f : xEntrySpace;
-
-                        if (!wordWrapEnabled // No word wrapping, it must fit.
-                                // The line is empty, it must fit
-                                || currentLineWidth == 0.f
-                                // It simply fits
-                                || (contentWidth - currentLineWidth >=
-                                requiredSpacing + requiredWidth)) {
-                            // Expand current line
-                            currentLineWidth += requiredSpacing + requiredWidth;
-                        } else { // It doesn't fit, we need to wrap a line
-
-                            // Add current line size to array
-                            mCalculatedLineSizes.add(FSize.getInstance(currentLineWidth, labelLineHeight));
-                            maxLineWidth = Math.max(maxLineWidth, currentLineWidth);
-
-                            // Start a new line
-                            mCalculatedLabelBreakPoints.set(
-                                    stackedStartIndex > -1 ? stackedStartIndex
-                                            : i, true);
-                            currentLineWidth = requiredWidth;
-                        }
-
-                        if (i == entryCount - 1) {
-                            // Add last line size to array
-                            mCalculatedLineSizes.add(FSize.getInstance(currentLineWidth, labelLineHeight));
-                            maxLineWidth = Math.max(maxLineWidth, currentLineWidth);
-                        }
-                    }
-
-                    stackedStartIndex = label != null ? -1 : stackedStartIndex;
-                }
-
-                mNeededWidth = maxLineWidth;
-                mNeededHeight = labelLineHeight
-                        * (float) (mCalculatedLineSizes.size())
-                        + labelLineSpacing *
-                        (float) (mCalculatedLineSizes.size() == 0
-                                ? 0
-                                : (mCalculatedLineSizes.size() - 1));
-
-                break;
-            }
+        if (mOrientation == Orientation.VERTICAL) {
+            calculateVerticalDimensions(labelPaint, stackSpace, formToTextSpace, yEntrySpace, defaultFormSize);
+        } else if (mOrientation == Orientation.HORIZONTAL) {
+            calculateHorizontalDimensions(labelPaint, viewPortHandler, stackSpace, formToTextSpace, xEntrySpace, yEntrySpace, defaultFormSize);
         }
 
         mNeededHeight += mYOffset;
         mNeededWidth += mXOffset;
+    }
+
+    private void calculateVerticalDimensions(Paint labelPaint, float stackSpace, float formToTextSpace,
+                                             float yEntrySpace, float defaultFormSize) {
+        float maxWidth = 0f, maxHeight = 0f, lineWidth = 0f;
+        final float labelLineHeight = Utils.getLineHeight(labelPaint);
+        boolean wasStacked = false;
+
+        for (LegendEntry entry : mEntries) {
+            boolean hasForm = entry.form != LegendForm.NONE;
+            float formSize = Float.isNaN(entry.formSize) ? defaultFormSize : Utils.convertDpToPixel(entry.formSize);
+            String label = entry.label;
+
+            if (!wasStacked) lineWidth = 0f;
+
+            if (hasForm) {
+                if (wasStacked) lineWidth += stackSpace;
+                lineWidth += formSize;
+            }
+
+            if (label != null) {
+                if (hasForm && !wasStacked) lineWidth += formToTextSpace;
+                else if (wasStacked) {
+                    maxWidth = Math.max(maxWidth, lineWidth);
+                    maxHeight += labelLineHeight + yEntrySpace;
+                    lineWidth = 0f;
+                    wasStacked = false;
+                }
+                lineWidth += Utils.calcTextWidth(labelPaint, label);
+                if (isNotLastEntry(entry)) maxHeight += labelLineHeight + yEntrySpace;
+            } else {
+                wasStacked = true;
+                lineWidth += formSize + stackSpace;
+            }
+
+            maxWidth = Math.max(maxWidth, lineWidth);
+        }
+
+        mNeededWidth = maxWidth;
+        mNeededHeight = maxHeight;
+    }
+
+    private void calculateHorizontalDimensions(Paint labelPaint, ViewPortHandler viewPortHandler, float stackSpace,
+                                               float formToTextSpace, float xEntrySpace, float yEntrySpace, float defaultFormSize) {
+        final float labelLineHeight = Utils.getLineHeight(labelPaint);
+        final float labelLineSpacing = Utils.getLineSpacing(labelPaint) + yEntrySpace;
+        final float contentWidth = viewPortHandler.contentWidth() * mMaxSizePercent;
+
+        float maxLineWidth = 0f, currentLineWidth = 0f, requiredWidth = 0f;
+        int stackedStartIndex = -1;
+
+        mCalculatedLabelBreakPoints.clear();
+        mCalculatedLabelSizes.clear();
+        mCalculatedLineSizes.clear();
+
+        for (int i = 0; i < mEntries.length; i++) {
+            LegendEntry entry = mEntries[i];
+            boolean hasForm = entry.form != LegendForm.NONE;
+            float formSize = Float.isNaN(entry.formSize) ? defaultFormSize : Utils.convertDpToPixel(entry.formSize);
+            String label = entry.label;
+
+            mCalculatedLabelBreakPoints.add(false);
+            requiredWidth = (stackedStartIndex == -1) ? 0f : requiredWidth + stackSpace;
+
+            if (label != null) {
+                mCalculatedLabelSizes.add(Utils.calcTextSize(labelPaint, label));
+                requiredWidth += (hasForm ? formToTextSpace + formSize : 0f) + mCalculatedLabelSizes.get(i).width;
+            } else {
+                mCalculatedLabelSizes.add(FSize.getInstance(0f, 0f));
+                requiredWidth += (hasForm ? formSize : 0f);
+                if (stackedStartIndex == -1) stackedStartIndex = i;
+            }
+
+            if (label != null || i == mEntries.length - 1) {
+                float requiredSpacing = (currentLineWidth == 0f) ? 0f : xEntrySpace;
+                if (!mWordWrapEnabled || currentLineWidth == 0f || contentWidth - currentLineWidth >= requiredSpacing + requiredWidth) {
+                    currentLineWidth += requiredSpacing + requiredWidth;
+                } else {
+                    mCalculatedLineSizes.add(FSize.getInstance(currentLineWidth, labelLineHeight));
+                    maxLineWidth = Math.max(maxLineWidth, currentLineWidth);
+                    mCalculatedLabelBreakPoints.set((stackedStartIndex > -1) ? stackedStartIndex : i, true);
+                    currentLineWidth = requiredWidth;
+                }
+
+                if (i == mEntries.length - 1) {
+                    mCalculatedLineSizes.add(FSize.getInstance(currentLineWidth, labelLineHeight));
+                    maxLineWidth = Math.max(maxLineWidth, currentLineWidth);
+                }
+            }
+
+            stackedStartIndex = (label != null) ? -1 : stackedStartIndex;
+        }
+
+        mNeededWidth = maxLineWidth;
+        mNeededHeight = labelLineHeight * mCalculatedLineSizes.size() + labelLineSpacing * (mCalculatedLineSizes.size() - 1);
+    }
+
+    private boolean isNotLastEntry(LegendEntry entry) {
+        return entry != mEntries[mEntries.length - 1];
     }
 }
