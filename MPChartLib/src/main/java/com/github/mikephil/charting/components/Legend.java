@@ -659,9 +659,9 @@ public class Legend extends ComponentBase {
         mTextWidthMax = getMaximumEntryWidth(labelPaint);
         mTextHeightMax = getMaximumEntryHeight(labelPaint);
 
-        if (mOrientation == Orientation.VERTICAL) {
+        if (mOrientation == LegendOrientation.VERTICAL) {
             calculateVerticalDimensions(labelPaint, stackSpace, formToTextSpace, yEntrySpace, defaultFormSize);
-        } else if (mOrientation == Orientation.HORIZONTAL) {
+        } else if (mOrientation == LegendOrientation.HORIZONTAL) {
             calculateHorizontalDimensions(labelPaint, viewPortHandler, stackSpace, formToTextSpace, xEntrySpace, yEntrySpace, defaultFormSize);
         }
 
